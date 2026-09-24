@@ -386,8 +386,14 @@ function loadLocal(){
     };
     // Migration : import automatique des produits KID=Yes / EUR issus des mails
     // "DEAL DONE" (scan Outlook depuis septembre 2026, cf. filtre EUR + KID:Yes
-    // ou équipe CGP sans champ KID visible). Ne s'exécute qu'une seule fois.
-    if (!state.settings.__dealdone_import_20260923_v2){
+    // ou équipe CGP sans champ KID visible).
+    // NOTE : DD_DEFAULTS/DD_RAW sont désormais définis à chaque chargement (pas
+    // seulement au premier import) afin que (a) tout nouveau produit ajouté à
+    // DD_RAW dans une future mise à jour du fichier soit bien ajouté même si un
+    // import précédent a déjà eu lieu, et (b) une passe corrective ci-dessous
+    // puisse resynchroniser des champs déjà importés (ex: correctif maturité en
+    // années / dates de commercialisation complètes du 24/09/2026).
+    {
       const DD_DEFAULTS = {
         nom_commercial:'', total_commission:'',
         section:'CT', emetteur:'', insurers:[], maturity_value:5, maturity_unit:'ans',
@@ -553,8 +559,8 @@ function loadLocal(){
       DD_RAW.forEach(raw => {
         const existing = state.products.find(p => p.title === raw.title);
         if (existing){
-          // Déjà importé lors du premier passage (v1) : on complète juste les champs
-          // ajoutés depuis (nom_commercial / total_commission) sans toucher au reste,
+          // Déjà importé précédemment : on complète juste les champs ajoutés
+          // depuis (nom_commercial / total_commission) sans toucher au reste,
           // pour ne pas écraser d'éventuelles modifs manuelles.
           if (!existing.total_commission && raw.total_commission) existing.total_commission = raw.total_commission;
           if (!existing.nom_commercial && raw.nom_commercial) existing.nom_commercial = raw.nom_commercial;
@@ -583,6 +589,38 @@ function loadLocal(){
         state.products.push(p);
       });
       state.settings.__dealdone_import_20260923_v2 = true;
+
+      // Correctif du 24/09/2026 (une seule fois) : Adam a signalé des maturités
+      // encore affichées en mois (ex: "69 mois") et des dates de commercialisation
+      // encore au format "T+15" au lieu d'une vraie date. Ces valeurs avaient déjà
+      // été corrigées dans DD_RAW ci-dessus, mais le bloc juste au-dessus ("Déjà
+      // importé précédemment") ne resynchronise QUE nom_commercial/total_commission
+      // pour les produits déjà présents dans le localStorage du navigateur — donc
+      // les anciennes valeurs fausses restaient coincées. On force ici la
+      // resynchronisation de ces champs précis pour tous les produits DD_RAW déjà
+      // importés, sans toucher aux autres champs (pas d'écrasement de modifs
+      // manuelles sur le reste du produit).
+      if (!state.settings.__dealdone_datefix_20260924_v1){
+        DD_RAW.forEach(raw => {
+          const existing = state.products.find(p => p.title === raw.title);
+          if (existing){
+            existing.maturity_value = raw.maturity_value;
+            existing.maturity_unit = raw.maturity_unit;
+            existing.comm_date_text = raw.comm_date_text;
+            existing.comm_date_recap = raw.comm_date_recap;
+          }
+        });
+        // Filet de sécurité global : toute maturité encore en mois (saisie
+        // manuelle ou produit hors DD_RAW) est convertie en années.
+        state.products.forEach(p => {
+          if (p.maturity_unit === 'mois' && p.maturity_value){
+            p.maturity_value = Math.round((p.maturity_value/12)*100)/100;
+            p.maturity_unit = 'ans';
+          }
+        });
+        state.settings.__dealdone_datefix_20260924_v1 = true;
+        console.log('[Migration] Correctif maturité (années) / date de commercialisation (date complète) appliqué.');
+      }
       console.log('[Migration] Import DEAL DONE : ' + DD_RAW.length + ' produits traités.');
     }
     return true;
