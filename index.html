@@ -412,30 +412,30 @@ function loadLocal(){
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Novo Nordisk / EssilorLuxottica / Sanofi',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T4, puis -2% par trimestre (premier rappel après 12 mois)',
           bdc_type:'BdVC', bdc_level:50, coupon_pa:10.4, coupon_period:2.6, coupon_format:'memoire',
-          capital_kind:'barriere', capital_level:50, capital_euro:true, comm_date_text:'T+12' },
+          capital_kind:'barriere', capital_level:50, capital_euro:true, comm_date_text:'09/10/2026', comm_date_recap:'09/10/26' },
         { title:'Phoenix Mémoire WO sur Leonardo / Safran / Airbus', type:'Phoenix', emetteur:'Barclays',
           nom_commercial:'Phoenix Mémoire Aeronautique Septembre 2026', total_commission:'5,70%',
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Leonardo / Safran / Airbus',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T4, puis -2% par trimestre (premier rappel après 12 mois)',
           bdc_type:'BdVC', bdc_level:60, coupon_pa:8.8, coupon_period:2.2, coupon_format:'memoire',
-          capital_kind:'barriere', capital_level:50, capital_euro:true, comm_date_text:'T+15' },
+          capital_kind:'barriere', capital_level:50, capital_euro:true, comm_date_text:'14/10/2026', comm_date_recap:'14/10/26' },
         { title:'Phoenix Mémoire Stepdown WO sur Siemens Energy / Acciona / Iberdrola', type:'Phoenix', emetteur:'Santander',
           nom_commercial:'Phoenix mémoire Utilities Septembre 2026', total_commission:'6,00%',
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Siemens Energy / Acciona / Iberdrola',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T4, puis -2% par trimestre (premier rappel après 12 mois)',
           bdc_type:'BdVC', bdc_level:60, coupon_pa:8.8, coupon_period:2.2, coupon_format:'memoire',
-          capital_kind:'put_strike', capital_level:50, comm_date_text:'T+15' },
+          capital_kind:'put_strike', capital_level:50, comm_date_text:'14/10/2026', comm_date_recap:'14/10/26' },
         { title:'Produit de participation 100% Capital Garanti sur AXA', type:'KG_Call', emetteur:'BNP Paribas',
           total_commission:'5,65%',
-          maturity_value:42, maturity_unit:'mois', sous_jacent_type:'action_simple', sous_jacent_name:'AXA',
+          maturity_value:3.5, maturity_unit:'ans', sous_jacent_type:'action_simple', sous_jacent_name:'AXA',
           frequence:'Mensuelle', bdr_text:'', coupon_pa:5.1, coupon_period:0.425, coupon_format:'rappel_cumule',
           capital_kind:'garanti', capital_level:100, participation_level:200, cap_level:125, max_redemption:150,
-          is_callable:true, callable_start_text:'Mensuelle à partir du M12 (premier rappel après 12 mois)', comm_date_text:'T+15' },
+          is_callable:true, callable_start_text:'Mensuelle à partir du M12 (premier rappel après 12 mois)', comm_date_text:'13/10/2026', comm_date_recap:'13/10/26' },
         { title:'Produit de participation 100% Capital Garanti sur Crédit Agricole', type:'KG_Call', emetteur:'Marex',
           total_commission:'5,55%',
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'action_simple', sous_jacent_name:'Crédit Agricole',
           bdr_text:'', capital_kind:'garanti', capital_level:100, participation_level:120, cap_level:150, max_redemption:160,
-          is_callable:false, comm_date_text:'T+15' },
+          is_callable:false, comm_date_text:'08/10/2026', comm_date_recap:'08/10/26' },
         { title:'Athéna WO sur NVIDIA / Broadcom / Meta / Engie', type:'Athena', emetteur:'BBVA',
           total_commission:'8,00%',
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'NVIDIA / Broadcom / Meta / Engie',
@@ -447,7 +447,7 @@ function loadLocal(){
           frequence:'Annuelle', bdr_text:"100% à partir de l'année 2 (premier rappel après 2 ans)", coupon_pa:9, coupon_format:'rappel_cumule',
           capital_kind:'put_spread', capital_level:60, use_auto:false,
           capital_text:'<strong>Put spread 100% - 60%</strong> (perte 1:1 entre 100% et 60%, perte max 40%) + Knock-in européen à 80% à maturité',
-          comm_date_text:'T+10' },
+          comm_date_text:'29/09/2026', comm_date_recap:'29/09/26' },
         { title:'Phoenix Mémoire sur MQDCOP50', type:'Phoenix', emetteur:'Morgan Stanley',
           nom_commercial:'Olympe Tempo Cuivre Novembre 2026', total_commission:'8,00%',
           maturity_value:12, maturity_unit:'ans', sous_jacent_type:'indice_thematique', sous_jacent_name:'MQDCOP50',
@@ -457,7 +457,7 @@ function loadLocal(){
           capital_kind:'barriere', capital_level:50, comm_date_text:'13/11/2026', comm_date_recap:'13/11/26' },
         { title:'Phoenix Mémoire WO sur Société Générale / Engie', type:'Phoenix', emetteur:'Barclays',
           total_commission:'5,00%',
-          maturity_value:69, maturity_unit:'mois', sous_jacent_type:'panier_wo', sous_jacent_name:'Société Générale / Engie',
+          maturity_value:5.75, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Société Générale / Engie',
           frequence:'Trimestrielle', strike_dates_text:'Lookback Min 15/09/2026 & 15/10/2026',
           bdr_text:'100% à partir du T3, puis -1,50% par trimestre (plancher 70%) (premier rappel après 9 mois)',
           bdc_type:'BdVC', bdc_level:70, coupon_pa:10.15, coupon_period:2.538, coupon_format:'memoire',
@@ -466,24 +466,24 @@ function loadLocal(){
           total_commission:'3,40%',
           maturity_value:5, maturity_unit:'ans', sous_jacent_type:'action_simple', sous_jacent_name:'Teleperformance',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T2 (premier rappel après 6 mois)',
-          coupon_pa:25, coupon_period:6.25, coupon_format:'rappel_cumule', capital_kind:'barriere', capital_level:70, comm_date_text:'T+15' },
+          coupon_pa:25, coupon_period:6.25, coupon_format:'rappel_cumule', capital_kind:'barriere', capital_level:70, comm_date_text:'05/10/2026', comm_date_recap:'05/10/26' },
         { title:'Athéna sur Engie Décrément 1,35€', type:'Athena', emetteur:'Barclays',
           total_commission:'5,35%',
           maturity_value:12, maturity_unit:'ans', sous_jacent_type:'action_div_fixe', sous_jacent_name:'Engie Décrément 1,35€',
           frequence:'Mensuelle', bdr_text:'100% à partir du M12 (premier rappel après 12 mois)',
-          coupon_pa:16.4004, coupon_period:1.367, coupon_format:'rappel_cumule', capital_kind:'barriere', capital_level:60, comm_date_text:'T+15' },
+          coupon_pa:16.4004, coupon_period:1.367, coupon_format:'rappel_cumule', capital_kind:'barriere', capital_level:60, comm_date_text:'05/10/2026', comm_date_recap:'05/10/26' },
         { title:'Phoenix Mémoire sur Engie Décrément 1,35€', type:'Phoenix', emetteur:'BBVA',
           total_commission:'5,50%',
           maturity_value:12, maturity_unit:'ans', sous_jacent_type:'action_div_fixe', sous_jacent_name:'Engie Décrément 1,35€',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T4 (premier rappel après 12 mois)',
           bdc_type:'BdVC', bdc_level:70, coupon_pa:10.2, coupon_period:2.55, coupon_format:'memoire',
-          capital_kind:'barriere', capital_level:60, comm_date_text:'T+15' },
+          capital_kind:'barriere', capital_level:60, comm_date_text:'05/10/2026', comm_date_recap:'05/10/26' },
         { title:'Phoenix Mémoire Stepdown WO sur Alphabet / Constellation Energy', type:'Phoenix', emetteur:'BBVA',
           total_commission:'6,00%',
           maturity_value:3, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Alphabet / Constellation Energy',
           frequence:'Mensuelle', bdr_text:'100% à partir du M3, puis -1% par mois (plancher 80%) (premier rappel après 3 mois)',
           bdc_type:'BdVC', bdc_level:70, coupon_pa:8.52, coupon_period:0.71, coupon_format:'memoire',
-          capital_kind:'barriere', capital_level:65, comm_date_text:'T+10' },
+          capital_kind:'barriere', capital_level:65, comm_date_text:'25/09/2026', comm_date_recap:'25/09/26' },
         { title:'Athéna Stepdown sur MQDCOP50', type:'Athena', emetteur:'Morgan Stanley',
           total_commission:'8,20%',
           maturity_value:12, maturity_unit:'ans', sous_jacent_type:'indice_thematique', sous_jacent_name:'MQDCOP50',
@@ -525,7 +525,7 @@ function loadLocal(){
           maturity_value:2, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Euro Stoxx 50 / S&P 500',
           frequence:'Trimestrielle', bdr_text:'', coupon_pa:8, coupon_period:2, coupon_format:'memoire',
           capital_kind:'garanti', capital_level:95, participation_level:135, cap_level:125, max_redemption:133.75,
-          is_callable:true, callable_start_text:'Trimestrielle à partir du T2 (premier rappel après 6 mois)', comm_date_text:'T+15' },
+          is_callable:true, callable_start_text:'Trimestrielle à partir du T2 (premier rappel après 6 mois)', comm_date_text:'24/09/2026', comm_date_recap:'24/09/26' },
         { title:'Phoenix Mémoire WO sur Scor Décrément 1,8€ / Engie Décrément 1,35€', type:'Phoenix', emetteur:'Barclays',
           total_commission:'9,00%',
           maturity_value:10, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Scor Décrément 1,8€ / Engie Décrément 1,35€',
@@ -537,18 +537,18 @@ function loadLocal(){
           total_commission:'1,01%',
           maturity_value:1, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'Disney / Microsoft / Visa',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T2 (premier rappel après 6 mois)',
-          coupon_pa:7.96, coupon_period:1.99, coupon_format:'garanti', capital_kind:'put_strike', capital_level:63, comm_date_text:'T+10' },
+          coupon_pa:7.96, coupon_period:1.99, coupon_format:'garanti', capital_kind:'put_strike', capital_level:63, comm_date_text:'17/09/2026', comm_date_recap:'17/09/26' },
         { title:'Phoenix Coupon Garanti Trimestriel sur WO ASML / EssilorLuxottica / Hermès', type:'Phoenix_CG', emetteur:'Société Générale',
           total_commission:'1,39%',
           maturity_value:1, maturity_unit:'ans', sous_jacent_type:'panier_wo', sous_jacent_name:'ASML / EssilorLuxottica / Hermès',
           frequence:'Trimestrielle', bdr_text:'100% à partir du T2 (premier rappel après 6 mois)',
-          coupon_pa:9.89, coupon_period:2.473, coupon_format:'garanti', capital_kind:'put_strike', capital_level:70, comm_date_text:'T+15' },
+          coupon_pa:9.89, coupon_period:2.473, coupon_format:'garanti', capital_kind:'put_strike', capital_level:70, comm_date_text:'24/09/2026', comm_date_recap:'24/09/26' },
         { title:'Note Callable Capital Garanti 100% - Coupon Fixe 4,10%', type:'KG', emetteur:'CACIB',
           total_commission:'1,60%',
           maturity_value:7, maturity_unit:'ans', sous_jacent_type:'taux', sous_jacent_name:'Taux fixe',
           frequence:'Annuelle', bdr_text:"100% à partir de l'année 3 - 2029 (premier rappel après 3 ans)",
           coupon_pa:4.1, coupon_format:'garanti', capital_kind:'garanti', capital_level:100,
-          is_callable:true, callable_start_text:'Annuelle à partir de la 3ème année (2029)', comm_date_text:'T+10' }
+          is_callable:true, callable_start_text:'Annuelle à partir de la 3ème année (2029)', comm_date_text:'25/09/2026', comm_date_recap:'25/09/26' }
       ];
       DD_RAW.forEach(raw => {
         const existing = state.products.find(p => p.title === raw.title);
@@ -1654,8 +1654,13 @@ function saveProductForm(){
     });
   } else { p.insurers = []; }
   
-  p.maturity_value = parseInt(document.getElementById('f-mat-val').value)||null;
+  p.maturity_value = parseFloat(document.getElementById('f-mat-val').value)||null;
   p.maturity_unit = document.getElementById('f-mat-unit').value;
+  // Adam préfère toujours voir la maturité en années : conversion auto si saisie en mois.
+  if (p.maturity_unit === 'mois' && p.maturity_value){
+    p.maturity_value = Math.round((p.maturity_value/12)*100)/100;
+    p.maturity_unit = 'ans';
+  }
   p.comm_date_text = document.getElementById('f-comm').value.trim();
   p.comm_date_recap = document.getElementById('f-comm-recap').value.trim();
   p.strike_dates_text = document.getElementById('f-strike').value.trim();
