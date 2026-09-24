@@ -2933,7 +2933,7 @@ async function msGetMsal(){
   _msal = new msal.PublicClientApplication({
     auth: {
       clientId: state.settings.ms_client_id,
-      authority: 'https://login.microsoftonline.com/common',
+      authority: 'https://login.microsoftonline.com/argonote.com',
       redirectUri: msRedirectUri()
     },
     cache: { cacheLocation: 'localStorage' }
