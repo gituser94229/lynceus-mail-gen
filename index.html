@@ -108,13 +108,6 @@ main{display:grid;grid-template-columns:minmax(420px,42%) 1fr;height:calc(100vh 
 .api-key-modal button{padding:8px 16px;border:1px solid #1a2744;background:#1a2744;color:#fff;border-radius:3px;cursor:pointer;font-weight:600}
 .api-key-modal button.cancel{background:#fff;color:#1a2744}
 .ms-scan-modal .box{max-width:640px;max-height:85vh;display:flex;flex-direction:column}
-.ms-scan-progress-wrap{background:#eee;border-radius:20px;height:16px;overflow:hidden;margin:10px 0}
-.ms-scan-progress-bar{background:linear-gradient(90deg,#c8a84b,#1a2744);height:100%;width:0%;transition:width 0.3s ease;border-radius:20px}
-.ms-scan-step{font-size:12.5px;color:#1a2744;font-weight:600;margin-bottom:4px}
-.ms-scan-log{flex:1;overflow-y:auto;background:#fafafa;border:1px solid #e5e5e5;border-radius:4px;padding:8px 10px;font-family:monospace;font-size:11px;line-height:1.6;color:#555;max-height:220px}
-.ms-scan-log .ok{color:#2a7a2a}
-.ms-scan-log .skip{color:#999}
-.ms-scan-log .err{color:#b03030}
 .ms-stage-list{flex:1;overflow-y:auto;margin:10px 0}
 .ms-stage-item{border:1px solid #e5e5e5;border-radius:4px;padding:8px 10px;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start}
 .ms-stage-item .title{font-weight:600;color:#1a2744;font-size:12.5px}
@@ -164,8 +157,7 @@ hr{border:none;border-top:1px solid #e0e0e0;margin:14px 0}
 <div class="view active" id="view-list">
 <div class="row-actions">
 <button class="primary" onclick="newProduct()">+ Nouveau produit</button>
-<button onclick="msOpenScanModal()" style="background:#eef3fb;border:1px solid #1a2744;color:#1a2744;font-weight:600;" title="Scanner le dossier DEAL DONE sur Outlook et proposer les nouveaux produits éligibles (EUR + KID=Yes)">📥 Scanner Outlook</button>
-<button onclick="msFullRescan()" style="font-size:10.5px;color:#888;" title="Ignore la date du dernier scan et rebalaye depuis le 1er septembre 2026">↺ Rebalayage complet</button>
+<button id="ms-pending-btn" onclick="msOpenStageModal()" style="background:#eef3fb;border:1px solid #1a2744;color:#1a2744;font-weight:600;display:none;" title="Produits trouvés par le dernier scan Outlook, en attente de validation">🆕 Produits en attente (<span id="ms-pending-count">0</span>)</button>
 <span style="margin-left:8px;color:#888;font-size:11px;">Tri :</span>
 <button id="sort-btn-auto" onclick="setSortMode('auto')">Auto</button>
 <button id="sort-btn-date" onclick="setSortMode('date')">Par date</button>
@@ -2330,6 +2322,7 @@ function init(){
   }
   render();
   setStatus('Prêt - '+state.products.length+' produits');
+  msRefreshPendingBtn();
 }
 
 
@@ -2883,308 +2876,24 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre. Si un champ n'apparaît pas clai
 }
 
 // ============================================================
-// MS GRAPH — Scan automatique du dossier Outlook "DEAL DONE"
+// PRODUITS EN ATTENTE — validation des candidats trouvés par Claude lors
+// d'un scan (planifié ou demandé dans le chat) du dossier Outlook "DEAL DONE".
+// Claude modifie directement le tableau _msStaged ci-dessous après chaque
+// scan, en éditant ce fichier. Aucun appel réseau n'est fait depuis la page
+// elle-même : l'ancienne intégration Microsoft Graph / MSAL a été abandonnée
+// car elle nécessitait un consentement administrateur indisponible sur le
+// tenant Argonote.
 // ============================================================
-let _msal = null;
-let _msStaged = [];
-let _msScanning = false;
+let _msStaged = [
+  /* Claude insère ici les candidats trouvés : { raw:{...}, checked:true, subject:'...', why:'...' } */
+];
 
-function msRedirectUri(){
-  return window.location.href.split('#')[0].split('?')[0];
-}
-
-function msOpenScanModal(){
-  if (!state.settings.ms_client_id){
-    document.getElementById('ms-redirect-uri-display').textContent = msRedirectUri();
-    document.getElementById('ms-client-id-input').value = '';
-    document.getElementById('ms-config-modal').classList.add('show');
-    return;
-  }
-  msStartScan();
-}
-function msSaveConfig(){
-  const id = document.getElementById('ms-client-id-input').value.trim();
-  if (!id){ toast('Client ID Azure AD requis', true); return; }
-  state.settings.ms_client_id = id;
-  saveNow();
-  document.getElementById('ms-config-modal').classList.remove('show');
-  msStartScan();
-}
-function msCancelConfig(){
-  document.getElementById('ms-config-modal').classList.remove('show');
-}
-function msFullRescan(){
-  if (!confirm('Rebalayer tout l\'historique depuis le 1er septembre 2026 ? (plus lent, plus d\'appels API Claude)')) return;
-  state.settings.ms_last_scan_iso = '2026-09-01T00:00:00Z';
-  saveNow();
-  msOpenScanModal();
-}
-
-async function msGetMsal(){
-  if (_msal) return _msal;
-  try {
-    await window.__msalLoad;
-  } catch(e){
-    throw new Error('La librairie Microsoft (MSAL) n\'a pas pu être chargée (connexion internet, bloqueur de pub ou pare-feu ?). Recharge la page et réessaie.');
-  }
-  if (typeof msal === 'undefined'){
-    throw new Error('La librairie Microsoft (MSAL) ne s\'est pas initialisée correctement. Recharge la page et réessaie.');
-  }
-  _msal = new msal.PublicClientApplication({
-    auth: {
-      clientId: state.settings.ms_client_id,
-      authority: 'https://login.microsoftonline.com/argonote.com',
-      redirectUri: msRedirectUri()
-    },
-    cache: { cacheLocation: 'localStorage' }
-  });
-  return _msal;
-}
-
-async function msGetToken(){
-  const app = await msGetMsal();
-  await app.initialize();
-  const scopes = ['Mail.Read'];
-  let account = app.getAllAccounts()[0];
-  if (account){
-    try {
-      const res = await app.acquireTokenSilent({ scopes, account });
-      return res.accessToken;
-    } catch(e){ /* retombe sur l'auth interactive */ }
-  }
-  const res = await app.loginPopup({ scopes });
-  return res.accessToken;
-}
-
-function msOpenScanModalUI(){
-  document.getElementById('ms-scan-log').innerHTML = '';
-  document.getElementById('ms-scan-progress-bar').style.width = '0%';
-  document.getElementById('ms-scan-step').textContent = 'Initialisation...';
-  document.getElementById('ms-scan-close-btn').textContent = 'Annuler';
-  document.getElementById('ms-scan-modal').classList.add('show');
-}
-function msCloseScanModal(){
-  document.getElementById('ms-scan-modal').classList.remove('show');
-}
-function msSetStep(text, pct){
-  document.getElementById('ms-scan-step').textContent = text;
-  if (pct != null) document.getElementById('ms-scan-progress-bar').style.width = Math.max(0,Math.min(100,pct)) + '%';
-}
-function msLog(msg, cls){
-  const log = document.getElementById('ms-scan-log');
-  const line = document.createElement('div');
-  if (cls) line.className = cls;
-  line.textContent = msg;
-  log.appendChild(line);
-  log.scrollTop = log.scrollHeight;
-}
-
-async function msGraphFetch(url, token){
-  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-  if (!r.ok){
-    const t = await r.text().catch(()=> '');
-    throw new Error('Graph API ' + r.status + ' : ' + t.substring(0,300));
-  }
-  return r.json();
-}
-
-async function msFindDealDoneFolder(token){
-  msSetStep('Recherche du dossier "DEAL DONE"...', 8);
-  let data = await msGraphFetch('https://graph.microsoft.com/v1.0/me/mailFolders?$top=100', token);
-  let found = (data.value||[]).find(f => (f.displayName||'').toLowerCase() === 'deal done');
-  if (found) return found.id;
-  for (const f of (data.value||[])){
-    try {
-      const kids = await msGraphFetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${f.id}/childFolders?$top=100`, token);
-      const kf = (kids.value||[]).find(k => (k.displayName||'').toLowerCase() === 'deal done');
-      if (kf) return kf.id;
-    } catch(e){ /* ignore, on continue avec les autres dossiers */ }
-  }
-  throw new Error('Dossier "DEAL DONE" introuvable dans la boîte mail.');
-}
-
-function msParseTeam(subject){
-  const m = /-\s*([A-Za-zÀ-ÿ]+)\s*TEAM/i.exec(subject||'');
-  return m ? m[1].toUpperCase() : null;
-}
-
-function msIsEligible(devise, kid, section, team){
-  if ((devise||'').toUpperCase() !== 'EUR') return {ok:false, why:'devise '+(devise||'?')};
-  if (section === 'AV') return {ok:false, why:'produit Assurance Vie'};
-  if (kid === 'Yes') return {ok:true, why:'KID: Yes'};
-  if (kid === 'No') return {ok:false, why:'KID: No'};
-  if (!kid){
-    if (team === 'CGP') return {ok:true, why:'pas de champ KID, équipe CGP'};
-    return {ok:false, why:'pas de champ KID, équipe '+(team||'?')};
-  }
-  return {ok:false, why:'non éligible'};
-}
-
-function msScanPrompt(){
-  return `Tu es expert en produits structurés financiers chez Lynceus Partners. Voici une fiche interne "DEAL DONE" (trade ticket), PAS une fiche marketing. Elle a deux blocs : "Paramètres" (Structure, Maturité, Devise, Sous-Jacent, Niveau Initial, Fréquence de Rappel, Niveau de Rappel, Période de Non-Call, coupon, barrière de capital OU put strike OU champs de participation KG+Call) puis un second bloc (Livraison, Date d'Émission, Émetteur, puis KID: Yes/No OU Assurance Vie: [assureur] OU ni l'un ni l'autre, puis Prix d'Achat, Total Commission, Client Max Commission).
-
-RÈGLES :
-1) Ne devine JAMAIS. Si un champ n'est pas lisible, mets null.
-2) Traduis chaque ticker Bloomberg en nom de société complet (ex: MC FP → LVMH, ACA FP → Crédit Agricole, SX5E → Euro Stoxx 50, SPX → S&P 500). Si worst-of, préfixe "WO " dans sous_jacent_name ; si équipondéré, "Équipondéré ".
-3) type : Structure="Autocall" + coupon mémoire visible (Coupon Mémoire / Barrière de Coupon) → "Phoenix". Autocall + "Coupon Fixe"/"Fréquence du Coupon Fixe" (pas de mémoire) → "Phoenix_CG". Autocall SANS Barrière de Coupon ni Coupon Mémoire (juste un seul "Coupon de Rappel: X% p.a.") → "Athena", coupon_format="rappel_cumule". Structure="Participation" ou titre "KG + Call"/"KG Callable" → "KG_Call". "Note de capital garanti"/"Callable Fixed Rate Note" → "KG".
-4) Pour KG_Call : capital_kind toujours "garanti" ; si aucun "Niveau de Protection du Capital" visible, capital_level=100 par convention ; sinon utilise la valeur lue.
-5) capital_kind : "Barrière de Capital: X% - Européenne"→"barriere" ; "Niveau de Put Strike: X%"→"put_strike" ; "Put Spread A-B%"→"put_spread" (capital_level=B).
-6) Titre : format technique "{Type} sur {noms complets}" (JAMAIS de ticker, JAMAIS le nom commercial marketing s'il y en a un dans le sujet du mail).
-7) devise : lis le champ "Devise" tel quel (EUR, USD, CHF, GBP...).
-8) kid : "Yes" si "KID: Yes" visible, "No" si "KID: No" visible, null si ni KID ni Assurance Vie ne sont visibles sur la fiche (juste "Internal Request Nb").
-9) section : "AV" si un champ "Assurance Vie"/"Assureur" est visible (même si KID est aussi présent — dans ce cas c'est quand même AV), sinon "CT".
-10) total_commission : recopie tel quel le champ "Total Commission" (ex: "6,30%").
-
-Réponds UNIQUEMENT avec un JSON strict, aucun texte autour :
-{
-  "title": "titre technique",
-  "type": "Athena | Phoenix | Phoenix_CG | KG_Call | KG | TARN | Autre",
-  "devise": "EUR | USD | CHF | GBP | autre",
-  "kid": "Yes | No | null",
-  "section": "AV | CT",
-  "emetteur": "nom de la banque",
-  "maturity_value": nombre, "maturity_unit": "ans | mois",
-  "sous_jacent_type": "action_simple | panier_wo | panier_ew | indice_thematique | action_div_fixe | taux | autre",
-  "sous_jacent_name": "noms complets",
-  "frequence": "Trimestrielle | Mensuelle | Semestrielle | Annuelle | Quotidienne",
-  "strike_dates_text": "texte du Niveau Initial si pas 'Clôture', sinon null",
-  "bdr_text": "niveau de rappel + non-call en texte",
-  "bdc_type": "none | BdVC | Airbag | Prot_maturite",
-  "bdc_level": nombre ou null,
-  "coupon_pa": nombre ou null, "coupon_period": nombre ou null,
-  "coupon_format": "memoire | rappel_cumule | garanti | distribue",
-  "capital_kind": "garanti | barriere | put_strike | put_leverage | put_spread",
-  "capital_level": nombre,
-  "capital_euro": true ou false,
-  "participation_level": nombre ou null, "cap_level": nombre ou null, "max_redemption": nombre ou null,
-  "is_callable": true/false/null, "callable_start_text": "texte ou null",
-  "total_commission": "texte ex '6,30%' ou null",
-  "nom_commercial": "nom marketing si visible distinctement du titre technique (rare), sinon null"
-}`;
-}
-
-async function msExtractFiche(base64, mime, apiKey){
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-5',
-      max_tokens: 2000,
-      temperature: 0,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } },
-          { type: 'text', text: msScanPrompt() }
-        ]
-      }]
-    })
-  });
-  if (!response.ok){
-    const t = await response.text().catch(()=> '');
-    throw new Error('Claude API ' + response.status + ' : ' + t.substring(0,300));
-  }
-  const data = await response.json();
-  const text = data.content[0].text.trim();
-  const cleaned = text.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/i,'').trim();
-  return JSON.parse(cleaned);
-}
-
-async function msStartScan(){
-  if (_msScanning) return;
-  _msScanning = true;
-  // Demande la clé API AVANT d'ouvrir la fenêtre de scan : les deux modales ont le même
-  // z-index, et la fenêtre de scan s'affichant après dans le HTML passerait par-dessus,
-  // rendant le champ de clé invisible/inaccessible (scan bloqué sur "Initialisation...").
-  const apiKey = await aiGetApiKey();
-  if (!apiKey){ toast('Scan annulé : clé API Claude requise.', true); _msScanning = false; return; }
-  msOpenScanModalUI();
-  try {
-    msSetStep('Connexion à Microsoft...', 4);
-    const token = await msGetToken();
-    msLog('✅ Connecté à Outlook.', 'ok');
-
-    const folderId = await msFindDealDoneFolder(token);
-    msLog('✅ Dossier "DEAL DONE" trouvé.', 'ok');
-
-    const sinceIso = state.settings.ms_last_scan_iso || '2026-09-01T00:00:00Z';
-    msSetStep('Recherche des mails depuis ' + new Date(sinceIso).toLocaleDateString('fr-FR') + '...', 12);
-
-    let messages = [];
-    let url = `https://graph.microsoft.com/v1.0/me/mailFolders/${folderId}/messages?$filter=receivedDateTime ge ${sinceIso}&$select=id,subject,receivedDateTime,hasAttachments&$orderby=receivedDateTime asc&$top=50`;
-    while (url){
-      const page = await msGraphFetch(url, token);
-      messages = messages.concat(page.value||[]);
-      url = page['@odata.nextLink'] || null;
-    }
-    msLog(`\u{1F4EC} ${messages.length} mail(s) trouvé(s) depuis le dernier scan.`, 'ok');
-
-    if (!messages.length){
-      msSetStep('Aucun nouveau mail à analyser.', 100);
-      state.settings.ms_last_scan_iso = new Date().toISOString();
-      saveNow();
-      document.getElementById('ms-scan-close-btn').textContent = 'Fermer';
-      _msScanning = false;
-      return;
-    }
-
-    _msStaged = [];
-    const existingTitles = new Set(state.products.map(p=>p.title));
-    const stagedTitles = new Set();
-
-    for (let i=0; i<messages.length; i++){
-      const msg = messages[i];
-      const pct = 15 + Math.round((i/messages.length)*80);
-      msSetStep(`Analyse du mail ${i+1}/${messages.length}...`, pct);
-      if (!msg.hasAttachments){
-        msLog(`⏭️ [${i+1}/${messages.length}] ${msg.subject} — pas de pièce jointe`, 'skip');
-        continue;
-      }
-      try {
-        const atts = await msGraphFetch(`https://graph.microsoft.com/v1.0/me/messages/${msg.id}/attachments?$select=name,contentType,contentBytes`, token);
-        const img = (atts.value||[]).find(a => (a.contentType||'').startsWith('image/'));
-        if (!img){
-          msLog(`⏭️ [${i+1}/${messages.length}] ${msg.subject} — pas d'image en pièce jointe`, 'skip');
-          continue;
-        }
-        const extracted = await msExtractFiche(img.contentBytes, img.contentType, apiKey);
-        const team = msParseTeam(msg.subject);
-        const elig = msIsEligible(extracted.devise, extracted.kid, extracted.section, team);
-        if (!elig.ok){
-          msLog(`⏭️ [${i+1}/${messages.length}] ${extracted.title||msg.subject} — exclu (${elig.why})`, 'skip');
-          continue;
-        }
-        if (existingTitles.has(extracted.title) || stagedTitles.has(extracted.title)){
-          msLog(`⏭️ [${i+1}/${messages.length}] ${extracted.title} — déjà dans le catalogue ou déjà proposé`, 'skip');
-          continue;
-        }
-        stagedTitles.add(extracted.title);
-        _msStaged.push({ raw: extracted, checked: true, subject: msg.subject, why: elig.why });
-        msLog(`✅ [${i+1}/${messages.length}] ${extracted.title} — éligible (${elig.why})`, 'ok');
-      } catch(e){
-        msLog(`❌ [${i+1}/${messages.length}] ${msg.subject} — erreur : ${(e.message||String(e)).substring(0,150)}`, 'err');
-      }
-    }
-
-    state.settings.ms_last_scan_iso = new Date().toISOString();
-    saveNow();
-    msSetStep(`Scan terminé : ${_msStaged.length} produit(s) éligible(s) sur ${messages.length} mail(s).`, 100);
-    document.getElementById('ms-scan-close-btn').textContent = 'Fermer';
-
-    if (_msStaged.length){
-      setTimeout(() => { msCloseScanModal(); msOpenStageModal(); }, 600);
-    }
-  } catch(e){
-    msLog('❌ Erreur : ' + (e.message||String(e)), 'err');
-    msSetStep('Scan interrompu.', null);
-    document.getElementById('ms-scan-close-btn').textContent = 'Fermer';
-  }
-  _msScanning = false;
+function msRefreshPendingBtn(){
+  const btn = document.getElementById('ms-pending-btn');
+  const count = document.getElementById('ms-pending-count');
+  if (!btn || !count) return;
+  count.textContent = _msStaged.length;
+  btn.style.display = _msStaged.length ? '' : 'none';
 }
 
 function msOpenStageModal(){
@@ -3264,9 +2973,11 @@ function msCommitStaged(){
     ensureProductVisible(p);
     state.products.push(p);
   });
+  _msStaged = _msStaged.filter(s => !s.checked);
   saveNow();
   render();
   msCloseStageModal();
+  msRefreshPendingBtn();
   toast(chosen.length + ' produit(s) ajouté(s) au catalogue');
 }
 
@@ -4157,34 +3868,7 @@ init();
   </div>
 </div>
 
-<!-- MS Graph: configuration (Client ID Azure AD) -->
-<div id="ms-config-modal" class="api-key-modal">
-  <div class="box">
-    <h3>🔗 Connexion Outlook requise</h3>
-    <p>Pour scanner le dossier "DEAL DONE" directement depuis l'app, il faut d'abord enregistrer une application dans Entra ID (Azure AD) de Lynceus (permission déléguée <code>Mail.Read</code>), puis coller ici son <strong>Application (client) ID</strong>.</p>
-    <p style="font-size:11.5px;color:#888">L'adresse de redirection à déclarer côté Azure est : <code id="ms-redirect-uri-display" style="background:#f5f5f5;padding:2px 4px;border-radius:3px"></code></p>
-    <input id="ms-client-id-input" type="text" placeholder="Application (client) ID Azure AD" />
-    <div class="actions">
-      <button class="cancel" onclick="msCancelConfig()">Annuler</button>
-      <button onclick="msSaveConfig()">Continuer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MS Graph: scan progress -->
-<div id="ms-scan-modal" class="api-key-modal ms-scan-modal">
-  <div class="box">
-    <h3>📥 Scan du dossier DEAL DONE</h3>
-    <div class="ms-scan-step" id="ms-scan-step">Initialisation...</div>
-    <div class="ms-scan-progress-wrap"><div class="ms-scan-progress-bar" id="ms-scan-progress-bar"></div></div>
-    <div class="ms-scan-log" id="ms-scan-log"></div>
-    <div class="actions" style="margin-top:12px">
-      <button class="cancel" onclick="msCloseScanModal()" id="ms-scan-close-btn">Fermer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MS Graph: staging / validation screen -->
+<!-- Produits en attente : écran de validation des candidats trouvés par Claude lors d'un scan Outlook -->
 <div id="ms-stage-modal" class="api-key-modal ms-scan-modal">
   <div class="box">
     <h3>✅ Produits éligibles trouvés</h3>
@@ -4201,24 +3885,5 @@ init();
   </div>
 </div>
 
-<script>
-// Chargement robuste de la librairie MSAL (auth Microsoft) : essaie le CDN officiel Microsoft,
-// et si celui-ci échoue (bloqué par un pare-feu, un bloqueur de pub, etc.) bascule automatiquement
-// sur un CDN de secours (jsDelivr) avant d'abandonner. Évite l'erreur cryptique "msal is not defined".
-window.__msalLoad = new Promise((resolve, reject) => {
-  function tryLoad(src, onFail){
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => resolve();
-    s.onerror = onFail;
-    document.body.appendChild(s);
-  }
-  tryLoad('https://alcdn.msauth.net/browser/3.14.0/js/msal-browser.min.js', () => {
-    tryLoad('https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js', () => {
-      reject(new Error('Impossible de charger la librairie Microsoft (MSAL) depuis les deux CDN essayés.'));
-    });
-  });
-});
-</script>
 </body>
 </html>
