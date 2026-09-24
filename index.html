@@ -3090,11 +3090,13 @@ async function msExtractFiche(base64, mime, apiKey){
 async function msStartScan(){
   if (_msScanning) return;
   _msScanning = true;
+  // Demande la clé API AVANT d'ouvrir la fenêtre de scan : les deux modales ont le même
+  // z-index, et la fenêtre de scan s'affichant après dans le HTML passerait par-dessus,
+  // rendant le champ de clé invisible/inaccessible (scan bloqué sur "Initialisation...").
+  const apiKey = await aiGetApiKey();
+  if (!apiKey){ toast('Scan annulé : clé API Claude requise.', true); _msScanning = false; return; }
   msOpenScanModalUI();
   try {
-    const apiKey = await aiGetApiKey();
-    if (!apiKey){ msLog('Scan annulé : clé API Claude requise.', 'err'); _msScanning = false; return; }
-
     msSetStep('Connexion à Microsoft...', 4);
     const token = await msGetToken();
     msLog('✅ Connecté à Outlook.', 'ok');
