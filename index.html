@@ -2886,6 +2886,24 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre. Si un champ n'apparaît pas clai
 // ============================================================
 let _msStaged = [
   /* Claude insère ici les candidats trouvés : { raw:{...}, checked:true, subject:'...', why:'...' } */
+  { raw: { title: 'Phoenix sur WO BNP Paribas / Engie / EssilorLuxottica', type: 'Phoenix', emetteur: 'Barclays',
+      maturity_value: 5, maturity_unit: 'ans', sous_jacent_type: 'panier_wo', sous_jacent_name: 'BNP Paribas / Engie / EssilorLuxottica',
+      frequence: 'Trimestrielle', strike_dates_text: null, bdr_text: '95% à partir du T2, puis -1% p.t.',
+      bdc_type: 'BdVC', bdc_level: 65, coupon_pa: 10, coupon_period: 2.5, coupon_format: 'memoire',
+      capital_kind: 'barriere', capital_level: 50, capital_euro: true,
+      participation_level: null, cap_level: null, max_redemption: null,
+      is_callable: true, callable_start_text: 'Trimestrielle à partir du T2 (premier rappel après 6 mois)',
+      total_commission: '6,44%', nom_commercial: null },
+    checked: true, subject: "[INTERNAL] DEAL DONE l AA - CGP TEAM | Phoenix Memory Stepdown sur BNP FP ENGI FP EL FP | Lynceus Partners", why: 'KID: Yes' },
+  { raw: { title: 'Phoenix sur Siemens Energy', type: 'Phoenix', emetteur: 'Barclays',
+      maturity_value: 3, maturity_unit: 'ans', sous_jacent_type: 'action_simple', sous_jacent_name: 'Siemens Energy',
+      frequence: 'Mensuelle', strike_dates_text: null, bdr_text: '100% à partir de M6, puis -0,50% p.m.',
+      bdc_type: 'BdVC', bdc_level: 80, coupon_pa: 11.15, coupon_period: 0.929, coupon_format: 'memoire',
+      capital_kind: 'barriere', capital_level: 60, capital_euro: true,
+      participation_level: null, cap_level: null, max_redemption: null,
+      is_callable: true, callable_start_text: 'Mensuelle à partir du M6 (premier rappel après 6 mois)',
+      total_commission: '5,40%', nom_commercial: null },
+    checked: true, subject: "[INTERNAL] DEAL DONE l PG - CGP TEAM | Phoenix Memory SD sur ENR GY | Lynceus Partners", why: 'KID: Yes' }
 ];
 
 function msRefreshPendingBtn(){
