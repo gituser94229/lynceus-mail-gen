@@ -2920,8 +2920,16 @@ function msFullRescan(){
   msOpenScanModal();
 }
 
-function msGetMsal(){
+async function msGetMsal(){
   if (_msal) return _msal;
+  try {
+    await window.__msalLoad;
+  } catch(e){
+    throw new Error('La librairie Microsoft (MSAL) n\'a pas pu être chargée (connexion internet, bloqueur de pub ou pare-feu ?). Recharge la page et réessaie.');
+  }
+  if (typeof msal === 'undefined'){
+    throw new Error('La librairie Microsoft (MSAL) ne s\'est pas initialisée correctement. Recharge la page et réessaie.');
+  }
   _msal = new msal.PublicClientApplication({
     auth: {
       clientId: state.settings.ms_client_id,
@@ -2934,7 +2942,7 @@ function msGetMsal(){
 }
 
 async function msGetToken(){
-  const app = msGetMsal();
+  const app = await msGetMsal();
   await app.initialize();
   const scopes = ['Mail.Read'];
   let account = app.getAllAccounts()[0];
@@ -4193,6 +4201,24 @@ init();
   </div>
 </div>
 
-<script src="https://alcdn.msauth.net/browser/3.14.0/js/msal-browser.min.js"></script>
+<script>
+// Chargement robuste de la librairie MSAL (auth Microsoft) : essaie le CDN officiel Microsoft,
+// et si celui-ci échoue (bloqué par un pare-feu, un bloqueur de pub, etc.) bascule automatiquement
+// sur un CDN de secours (jsDelivr) avant d'abandonner. Évite l'erreur cryptique "msal is not defined".
+window.__msalLoad = new Promise((resolve, reject) => {
+  function tryLoad(src, onFail){
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = onFail;
+    document.body.appendChild(s);
+  }
+  tryLoad('https://alcdn.msauth.net/browser/3.14.0/js/msal-browser.min.js', () => {
+    tryLoad('https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js', () => {
+      reject(new Error('Impossible de charger la librairie Microsoft (MSAL) depuis les deux CDN essayés.'));
+    });
+  });
+});
+</script>
 </body>
 </html>
